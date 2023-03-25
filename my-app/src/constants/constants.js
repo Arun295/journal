@@ -1,0 +1,7 @@
+export const SET_LOGGED = "SET_LOGGED";
+export const SET_READ_WHOLEDATA = "SET_READ_WHOLEDATA";
+export const SET_ORDER_DATA = "SET_ORDER_DATA";
+export const UNSET_ORDER_DATA = "UNSET_ORDER_DATA";
+export const SET_EXECUTION = "SET_EXECUTION";
+export const SET_NIFTY_DATA = "SET_NIFTY_DATA";
+export const SET_CANVAS = "SET_CANVAS";
