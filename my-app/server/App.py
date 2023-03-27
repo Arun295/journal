@@ -1,6 +1,6 @@
 from flask import Flask, request
 import requests
-from main import gettop_gainers, gettop_loosers, login, writeJson, readJson, read_data, get_stock_data, sell_order, findohl, buy_order, get_order_details, get_position_data, get_nifty_fifty_stocks_ohl
+from main import gettop_gainers, gettop_loosers, login, writeJson, readJson, read_data, get_stock_data, sell_order, findohl, buy_order, get_order_details, get_position_data, get_nifty_fifty_stocks_ohl,exit_market_buy_order,exit_market_sell_order
 from flask_socketio import SocketIO
 from flask_cors import CORS
 
@@ -69,11 +69,23 @@ def place_sell_order():
     params = request.get_json()
     return sell_order(params)
 
+@app.route('/exitsellorder', methods=['GET', 'POST'])
+def exit_sell_order():
+    params = request.get_json()
+
+    return exit_market_sell_order(params)
+
 
 @app.route('/buyorder', methods=['GET', 'POST'])
 def place_buy_order():
     params = request.get_json()
     return buy_order(params)
+
+@app.route('/exitbuyorder', methods=['GET', 'POST'])
+def exit_buy_order():
+    params = request.get_json()
+    return exit_market_buy_order(params)
+
 
 
 @app.route('/getwholedata', methods=['GET', 'POST'])

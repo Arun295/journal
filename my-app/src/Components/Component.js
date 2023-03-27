@@ -20,6 +20,8 @@ import MessageToast from "./MessageToast";
 function Component(props) {
   const [topGainerData, settopGainerData] = useState([]);
   const [topLooserData, settopLooserData] = useState([]);
+  const [topGainerDataReceived, settopGainerDataReceived] = useState(false);
+  const [topLooserDataReceived, settopLooserDataReceived] = useState(false);
   const [startohl, setOhl] = useState(false);
   const [writejson, setWritejson] = useState(false);
   const [timer, settimer] = useState(false);
@@ -28,75 +30,105 @@ function Component(props) {
   const [ytopGainerData, ysettopGainerData] = useState([]);
   const [ytopLooserData, ysettopLooserData] = useState([]);
 
-  const MINUTE_MS = 20000;
+  useEffect(() => {
+    const MINUTE_MS = 7000;
 
-  function fetchTopGainersData() {
-    getGainers("/topgainers")
-      .then((res) => {
-        // console.log(res);
-        settopGainerData(res.data);
-        // setGetjson(true);
-      })
-      .catch((err) => console.log(err));
-  }
-  function fetchTopLoosersData() {
-    getLoosers("/toploosers")
-      .then((res) => {
-        settopLooserData(res.data);
-      })
-      .catch((err) => console.log(err));
-  }
-  function fetchWholeData() {
-    getStocktoken("/getwholedata")
-      .then((response) => {
-        if (response.data) {
-          props.dispatch(readData(response.data));
-        } else {
-          console.log("No Response Data");
-        }
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }
-  function fetchNiftyOhlData() {
-    getNiftyStocksOhl("/get_nifty_fifty_stocks_ohl")
-      .then((res) => {
-        if (res.data.length > 0) {
+    function fetchTopGainersData() {
+      return getGainers("/topgainers")
+        .then((res) => {
+          // console.log(res);
+          if (res.data) {
+            settopGainerData(res.data);
+            settopGainerDataReceived(true);
+
+            return true;
+          }
+          // setGetjson(true);
+        })
+        .catch((err) => console.log(err));
+    }
+    function fetchTopLoosersData() {
+      return getLoosers("/toploosers")
+        .then((res) => {
+          if (res.data) {
+            settopLooserData(res.data);
+            settopLooserDataReceived(true);
+
+            return true;
+          }
+        })
+        .catch((err) => console.log(err));
+      // return true;
+    }
+    function fetchWholeData() {
+      getStocktoken("/getwholedata")
+        .then((response) => {
+          if (response.data) {
+            props.dispatch(readData(response.data));
+          } else {
+            console.log("No Response Data");
+          }
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    }
+    function fetchNiftyOhlData() {
+      getNiftyStocksOhl("/get_nifty_fifty_stocks_ohl")
+        .then((res) => {
+          if (res.data.length > 0) {
+            props.dispatch(setOhldata(res.data));
+          } else {
+            console.log("No Response Data");
+          }
+        })
+        .catch((err) => console.log(err));
+    }
+    function fetchYJsonData() {
+      getJsonData("/getjsonData")
+        .then((res) => {
           // console.log(res.data);
-          // setNiftyStks(res.data);
-          props.dispatch(setOhldata(res.data));
+          ysettopGainerData(res.data.yesterdaygainers);
+          ysettopLooserData(res.data.yesterdayloosers);
+        })
+        .catch((err) => console.log(err));
+    }
 
-          // findohl("/findohl", res.data)
-          //   .then((res) => {
-          //     let data = JSON.parse(JSON.stringify(res.data));
-          //     props.dispatch(setOhldata(data));
-          //   })
-          //   .catch((err) => {
-          //     console.log(err);
-          //   });
-          // props.dispatch(niftyData(res.data));
-        } else {
-          console.log("No Response Data");
-        }
-      })
-      .catch((err) => console.log(err));
-  }
-  function fetchYJsonData() {
-    getJsonData("/getjsonData")
-      .then((res) => {
-        // console.log(res.data);
-        ysettopGainerData(res.data.yesterdaygainers);
-        ysettopLooserData(res.data.yesterdayloosers);
-      })
-      .catch((err) => console.log(err));
-  }
+    // fetchTopGainersData();
+    // fetchTopLoosersData();
+    fetchWholeData();
+    fetchYJsonData();
+    // fetchNiftyOhlData();
+
+    const interval = setInterval(() => {
+      const time = new Date().toLocaleTimeString();
+      // console.log("hii");
+
+      let z = fetchTopGainersData();
+      let y = fetchTopLoosersData();
+      fetchNiftyOhlData();
+
+      // fetchYJsonData();
+      // console.log(time);
+
+      if (
+        parseInt(time.split(":")[0]) >= 3 &&
+        parseInt(time.split(":")[0]) !== 12 &&
+        time.split(":")[2].includes("PM")
+      ) {
+        setWritejson(true);
+
+        // console.log("writting json ");
+
+        return () => clearInterval(interval);
+      }
+    }, MINUTE_MS);
+  }, []);
   function writeYesterdayJsonData() {
-    // console.log("calling", topGainerData, topLooserData);
+    // console.log(topGainerData.length, topLooserData.length);
 
     if (topGainerData.length > 0 && topLooserData.length > 0) {
-      setWritejson(true);
-
+      console.log("writing data");
       writeJson("/writeYesterdayJsonData", {
         header: {
           ContentType: "application/json",
@@ -107,37 +139,19 @@ function Component(props) {
         },
       })
         .then((success) => {
-          // console.log(success);
+          settopGainerDataReceived(true);
+          settopLooserDataReceived(true);
         })
         .catch((err) => console.log(err));
+    } else {
+      console.log("not writing");
     }
   }
-  useEffect(() => {
-    fetchTopGainersData();
-    fetchTopLoosersData();
-    fetchWholeData();
-    fetchNiftyOhlData();
-    fetchYJsonData();
-
-    const interval = setInterval(() => {
-      const time = new Date().toLocaleTimeString();
-      fetchTopGainersData();
-      fetchTopLoosersData();
-      fetchNiftyOhlData();
-
-      // fetchYJsonData();
-
-      if (
-        parseInt(time.split(":")[0]) >= 3 &&
-        parseInt(time.split(":")[0]) !== 12 &&
-        time.split(":")[2].includes("PM")
-      ) {
-        writeYesterdayJsonData();
-
-        return () => clearInterval(interval);
-      }
-    }, MINUTE_MS);
-  }, []);
+  if (writejson) {
+    if (!topGainerDataReceived && !topGainerDataReceived) {
+      writeYesterdayJsonData();
+    }
+  }
 
   function haultExecution() {}
 
@@ -150,7 +164,7 @@ function Component(props) {
 
       <div class="sub-main-component">
         <Navbar />
-        <div>
+        <div style={{}}>
           <SecondaryNav niftystks={niftystks} />
         </div>
 

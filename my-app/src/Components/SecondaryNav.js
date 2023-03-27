@@ -17,6 +17,8 @@ import {
   setSellPriceTarget,
   setBuyPriceTarget,
 } from "../userFunctions/UserFunctions";
+import Button from "react-bootstrap/Button";
+import Card from "react-bootstrap/Card";
 function SecondaryNav(props) {
   const [ohldata, setohldata] = useState([]);
 
@@ -224,67 +226,77 @@ function SecondaryNav(props) {
 
   // console.log(props.ohl);
   return (
+    // <div
+    //   style={{
+    //     overflowX: "hidden",
+    //   }}
+    // >
     <div
       style={{
-        overflowX: "hidden",
+        display: "flex",
+        justifyContent: "start",
+        alignItems: "center",
+        maxHeight: "300px",
+        marginLeft: "10px",
+        gap: "50px",
+        overflowX: "scroll",
+        overflowY: "hidden",
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "start",
-          alignItems: "center",
-          maxHeight: "200px",
-          marginLeft: "10px",
-          gap: "50px",
-          overflowX: "scroll",
-        }}
-      >
-        <div class="stock-data-ohl">
-          <h5>Open-High-Low Data</h5>
-          {props.ohldata.length > 0 ? (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: "15px",
-              }}
-            >
-              {props.ohldata.map((item, index) => {
-                return (
-                  <div
-                    class="stock-data"
+      <div class="stock-data-ohl">
+        <h5>Open-High-Low Data</h5>
+        {props.ohldata.length > 0 ? (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: "15px",
+            }}
+          >
+            {props.ohldata.map((item, index) => {
+              return (
+                <Card
+                  class="stock-data"
+                  style={{
+                    backgroundColor:
+                      item.pos === "open-high" ? "#203647" : "rgb(95, 43, 43)",
+                    maxHeight: "200px",
+                    minWidth: "250px",
+                    // border: "1px solid grey",
+                    // textAlign: "initial",
+                    // gap: "20px",
+                    // borderRadius: "2.5%",
+                  }}
+                >
+                  <Card.Header
                     style={{
-                      // backgroundColor: "grey",
-                      maxHeight: "200px",
-                      minWidth: "250px",
-                      border: "1px solid grey",
-                      textAlign: "initial",
-                      gap: "20px",
-                      // borderRadius: "2.5%",
+                      backgroundColor: "inherit",
                     }}
                   >
-                    <h6
-                      style={{
-                        backgroundColor: "inherit",
-                      }}
-                    >
-                      {item.symbol} <b>{item.pos}</b>
-                    </h6>
-                    {item.pos === "open-high" ? (
-                      <div>
-                        <p>
-                          OPEN-{item.open},HIGH-{item.high}
-                          <br />
-                          LTP-{item.ltp}
-                        </p>
-                        <button
+                    {item.symbol} <b>{item.pos}</b>
+                  </Card.Header>
+                  {item.pos === "open-high" ? (
+                    <Card.Body>
+                      <Card.Title>
+                        {" "}
+                        O={item.open},H={item.high}
+                      </Card.Title>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        LTP-{item.ltp}
+                        <Button
+                          variant="danger"
                           style={{
-                            backgroundColor: "#D76F30",
-                            width: "100%",
-                            height: "30px",
+                            // backgroundColor: "#D76F30",
+                            // width: "100%",
+                            // height: "30px",
                             border: "none",
                             color: "white",
                           }}
@@ -293,22 +305,31 @@ function SecondaryNav(props) {
                           }}
                         >
                           SELL
-                        </button>
+                        </Button>
                       </div>
-                    ) : (
-                      <div>
-                        <p>
-                          OPEN-{item.open},LOW-{item.low}
-                          <br />
-                          LTP-{item.ltp}{" "}
-                        </p>
-                        <button
+                    </Card.Body>
+                  ) : (
+                    <Card.Body>
+                      <Card.Title>
+                        {" "}
+                        O={item.open},L={item.low}
+                      </Card.Title>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        LTP-{item.ltp}{" "}
+                        <Button
+                          variant="success"
                           style={{
-                            backgroundColor: "#6BB77B",
+                            // backgroundColor: "#6BB77B",
                             border: "none",
 
-                            width: "100%",
-                            height: "30px",
+                            // width: "100%",
+                            // height: "30px",
                             color: "white",
                           }}
                           onClick={() => {
@@ -316,17 +337,18 @@ function SecondaryNav(props) {
                           }}
                         >
                           BUY
-                        </button>
+                        </Button>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : null}
-        </div>
+                    </Card.Body>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        ) : null}
       </div>
     </div>
+    // </div>
   );
 }
 

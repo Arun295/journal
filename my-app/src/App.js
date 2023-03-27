@@ -1,8 +1,8 @@
 import React from "react";
 import Component from "./Components/Component";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import OrderPage from "./Components/OrderPage";
-// import "./App.css";
+import OrderPosition from "./Components/OrderPosition";
+import "./App.css";
 
 function App() {
   return (
@@ -10,10 +10,10 @@ function App() {
     //   <Component />
     // </div>
     <BrowserRouter>
-      <div style={{ backgroundColor: "#1D2228", color: "whitesmoke" }}>
+      <div class="App-main">
         <Routes>
           <Route path="/" element={<Component />} />
-          <Route path="/orderpage" element={<OrderPage />} />
+          <Route path="/orderpage" element={<OrderPosition />} />
         </Routes>
       </div>
     </BrowserRouter>

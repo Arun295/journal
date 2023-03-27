@@ -3,8 +3,19 @@
     box-sizing: border-box;
     margin:0;
 }
-/* body {
-    padding: 0;
-    margin: 0;
- } */
 
+.orders:hover {
+    background-image:linear-gradient(rgba(154, 154, 154, 0),rgba(129, 129, 129, 0.04), rgba(169, 169, 169, 0.11));
+    transition: 0.5s ease-in;
+
+
+
+ }
+
+.positions:hover {
+    background-image:linear-gradient(rgba(154, 154, 154, 0),rgba(129, 129, 129, 0.04), rgba(169, 169, 169, 0.11));
+
+    transition: 0.5s ease-in;
+
+
+ }

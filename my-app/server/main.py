@@ -152,7 +152,7 @@ def findohl(symbols):
 
 def sell_order(params):
 
-    price = params['price']
+    # price = params['price']
     data = params['stockdata']
     symbol = data['symbol']
     token = data['token']
@@ -196,10 +196,102 @@ def sell_order(params):
     return orderId
 
 
-def buy_order(params):
+
+def exit_market_sell_order(params):
+    price = params['ltp']
+    # data = params['stockdata']
+    symbol = params['tradingsymbol']
+    token = params['symboltoken']
+    exg = params['exchange']
+    quantity = params['netqty']
+    if '-' in quantity:
+        quantity=quantity.split('-')[1]
+    print(price,token,symbol,exg,quantity)
+    personal_data = {
+        'angel_code': 'P205239',
+        'Api_key': 'NZkxURxG',
+        'pswd': '3773',
+        'otpkey': "YSSC6X4LGTKQMBIRE56FCZZI44"}
+    # # print(params)
+    obj = SmartConnect(api_key=personal_data['Api_key'])
+
+    data = obj.generateSession(personal_data['angel_code'], personal_data['pswd'], pyotp.TOTP(
+        personal_data['otpkey']).now())
+    refreshToken = data['data']['refreshToken']
+    feedToken = obj.getfeedToken()
+    orderparams = {
+        "variety":"NORMAL",
+        "tradingsymbol":str(symbol),
+        "symboltoken":str(token),
+        "transactiontype":"SELL",
+        "exchange":str(exg),
+        "ordertype":"MARKET",
+        "producttype":"INTRADAY",
+        "duration":"DAY",
+        "price":'0',
+        "squareoff":"0",
+        "stoploss":"0",
+        "quantity":str(quantity)
+
+    }
+    orderId = obj.placeOrder(orderparams)
+    print(orderId)
+
+    return orderId
+
+
+
+
+def exit_market_buy_order(params):
     # print(params)
 
-    price = params['price']
+    price = params['ltp']
+    # data = params['stockdata']
+    symbol = params['tradingsymbol']
+    token = params['symboltoken']
+    exg = params['exchange']
+    quantity = params['netqty']
+    if '-' in quantity:
+        quantity=quantity.split('-')[1]
+    print(price,token,symbol,exg,quantity)
+    personal_data = {
+        'angel_code': 'P205239',
+        'Api_key': 'NZkxURxG',
+        'pswd': '3773',
+        'otpkey': "YSSC6X4LGTKQMBIRE56FCZZI44"}
+    # # print(params)
+    obj = SmartConnect(api_key=personal_data['Api_key'])
+
+    data = obj.generateSession(personal_data['angel_code'], personal_data['pswd'], pyotp.TOTP(
+        personal_data['otpkey']).now())
+    refreshToken = data['data']['refreshToken']
+    feedToken = obj.getfeedToken()
+    orderparams = {
+        "variety":"NORMAL",
+        "tradingsymbol":str(symbol),
+        "symboltoken":str(token),
+        "transactiontype":"BUY",
+        "exchange":str(exg),
+        "ordertype":"MARKET",
+        "producttype":"INTRADAY",
+        "duration":"DAY",
+        "price":'0',
+        "squareoff":"0",
+        "stoploss":"0",
+        "quantity":str(quantity)
+
+    }
+    orderId = obj.placeOrder(orderparams)
+    print(orderId)
+
+    return orderId
+
+
+
+def buy_order(params):
+    print(params)
+
+    # price = params['price']
     data = params['stockdata']
     symbol = data['symbol']
     token = data['token']
