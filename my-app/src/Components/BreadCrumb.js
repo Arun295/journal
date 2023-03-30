@@ -19,7 +19,7 @@ import {
 } from "../userFunctions/UserFunctions";
 import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
-function SecondaryNav(props) {
+function BreadCrumb(props) {
   const [ohldata, setohldata] = useState([]);
 
   // function fetchWholeData() {
@@ -54,7 +54,7 @@ function SecondaryNav(props) {
           // console.log(res.data);
           // setNiftyStks(res.data);
           props.dispatch(setOhldata(res.data));
-          // setohldata(res.data);
+          setohldata(res.data);
 
           // findohl("/findohl", res.data)
           //   .then((res) => {
@@ -154,9 +154,8 @@ function SecondaryNav(props) {
                 .then((res) => {
                   // console.log(res.data);
                   data["orderResponse"] = res.data;
-                  props.dispatch(orderData(data));
-
                   // if (res.data.status !== "rejected") {
+                  props.dispatch(orderData(data));
                   // }
                 })
                 .catch((err) => console.log(err));
@@ -245,8 +244,7 @@ function SecondaryNav(props) {
       }}
     >
       <div class="stock-data-ohl">
-        {/* <h5>Open-High-Low Data</h5> */}
-        {props.ohldata.length > 0 ? (
+        {props.gapdata.length > 0 ? (
           <div
             style={{
               display: "flex",
@@ -256,13 +254,13 @@ function SecondaryNav(props) {
               gap: "15px",
             }}
           >
-            {props.ohldata.map((item, index) => {
+            {props.gapdata.map((item, index) => {
               return (
                 <Card
                   class="stock-data"
                   style={{
                     backgroundColor:
-                      item.pos === "open-high" ? "#203647" : "rgb(95, 43, 43)",
+                      item.pos === "gap-up" ? "#203647" : "rgb(95, 43, 43)",
                     maxHeight: "200px",
                     minWidth: "250px",
                     // border: "1px solid grey",
@@ -276,72 +274,79 @@ function SecondaryNav(props) {
                       backgroundColor: "inherit",
                     }}
                   >
-                    {item.symbol} <b>{item.pos}</b>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      {item.symbol} <b>{item.ltp}</b>
+                    </div>
                   </Card.Header>
-                  {item.pos === "open-high" ? (
-                    <Card.Body>
-                      <Card.Title>
-                        {" "}
-                        O={item.open},H={item.high}
-                      </Card.Title>
+                  <Card.Body>
+                    <Card.Title>
+                      {" "}
                       <div
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
-                          alignItems: "center",
                         }}
                       >
-                        LTP-{item.ltp}
-                        <Button
-                          variant="danger"
-                          style={{
-                            // backgroundColor: "#D76F30",
-                            // width: "100%",
-                            // height: "30px",
-                            border: "none",
-                            color: "white",
-                          }}
-                          onClick={() => {
-                            sellcall(item);
-                          }}
-                        >
-                          SELL
-                        </Button>
+                        {" "}
+                        <p>O={item.open}</p>
+                        <p>H={item.high}</p>
                       </div>
-                    </Card.Body>
-                  ) : (
-                    <Card.Body>
-                      <Card.Title>
-                        {" "}
-                        O={item.open},L={item.low}
-                      </Card.Title>
                       <div
                         style={{
                           display: "flex",
                           justifyContent: "space-between",
-                          alignItems: "center",
                         }}
                       >
-                        LTP-{item.ltp}{" "}
-                        <Button
-                          variant="success"
-                          style={{
-                            // backgroundColor: "#6BB77B",
-                            border: "none",
+                        {" "}
+                        <p>Prev={item.previousdayclose}</p> <p> L={item.low}</p>
+                      </div>
+                    </Card.Title>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      {item.pos}
+                      <Button
+                        variant="danger"
+                        style={{
+                          // backgroundColor: "#D76F30",
+                          // width: "100%",
+                          // height: "30px",
+                          border: "none",
+                          color: "white",
+                        }}
+                        onClick={() => {
+                          sellcall(item);
+                        }}
+                      >
+                        SELL
+                      </Button>
+                      <Button
+                        variant="success"
+                        style={{
+                          // backgroundColor: "#6BB77B",
+                          border: "none",
 
-                            // width: "100%",
-                            // height: "30px",
-                            color: "white",
-                          }}
-                          onClick={() => {
-                            buycall(item);
-                          }}
-                        >
-                          BUY
-                        </Button>
-                      </div>
-                    </Card.Body>
-                  )}
+                          // width: "100%",
+                          // height: "30px",
+                          color: "white",
+                        }}
+                        onClick={() => {
+                          buycall(item);
+                        }}
+                      >
+                        BUY
+                      </Button>
+                    </div>
+                  </Card.Body>
                 </Card>
               );
             })}
@@ -355,10 +360,10 @@ function SecondaryNav(props) {
 
 const mapStateToProps = (state) => ({
   readData: state.DataCsv.jsonData,
-  niftyFiftyData: state.NiftyData.niftyData,
-  ohldata: state.Ohl.ohlData,
+  //   niftyFiftyData: state.NiftyData.niftyData,
+  //   ohldata: state.Ohl.ohlData,
   gapdata: state.GapUD.gapupDown,
 
-  // wholeData: state.DataCsv.jsonData,
+  //   wholeData: state.DataCsv.jsonData,
 });
-export default connect(mapStateToProps, undefined)(SecondaryNav);
+export default connect(mapStateToProps, undefined)(BreadCrumb);

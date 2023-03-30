@@ -18,7 +18,7 @@ function Cannvas(props) {
       setShow(false);
     }
   }, [props]);
-  console.log(props.canvas);
+  console.log(props.gdata);
 
   //   const handleShow = () => setShow(true);
 

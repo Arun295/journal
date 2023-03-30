@@ -9,13 +9,67 @@ import {
   setBuyPriceTarget,
   setSellPriceTarget,
 } from "../userFunctions/UserFunctions";
-import Button from "react-bootstrap/Button";
 import Card from "react-bootstrap/Card";
-import { orderData } from "../actions/basicActions";
+import {
+  orderData,
+  unsetOrderData,
+  unsetPositionPage,
+} from "../actions/basicActions";
 import MiniLoader from "./MiniLoader";
-
-function PositionsPage(props) {
-  const [positions, setpositionsData] = useState([]);
+import Toast from "react-bootstrap/Toast";
+import ToastContainer from "react-bootstrap/ToastContainer";
+import Button from "react-bootstrap/Button";
+function PositionToast(props) {
+  const [positions, setpositionsData] = useState([
+    {
+      tradingsymbol: "SBIN-EQ",
+      buyavgprice: "2330",
+      ltp: 2331,
+      netqty: "0",
+      exchange: "NSE",
+      pnl: "-200",
+    },
+    {
+      tradingsymbol: "DMART-EQ",
+      buyavgprice: "2330",
+      ltp: 2331,
+      netqty: "230",
+      exchange: "NSE",
+      pnl: "200",
+    },
+    {
+      tradingsymbol: "SBIN-EQ",
+      buyavgprice: "2330",
+      ltp: 2331,
+      netqty: "0",
+      exchange: "NSE",
+      pnl: "-200",
+    },
+    {
+      tradingsymbol: "DMART-EQ",
+      buyavgprice: "2330",
+      ltp: 2331,
+      netqty: "230",
+      exchange: "NSE",
+      pnl: "200",
+    },
+    {
+      tradingsymbol: "SBIN-EQ",
+      buyavgprice: "2330",
+      ltp: 2331,
+      netqty: "0",
+      exchange: "NSE",
+      pnl: "-200",
+    },
+    {
+      tradingsymbol: "DMART-EQ",
+      buyavgprice: "2330",
+      ltp: 2331,
+      netqty: "230",
+      exchange: "NSE",
+      pnl: "200",
+    },
+  ]);
   const [targetValue, setTarget] = useState([]);
   const [stk, setStk] = useState(false);
   const [stkdata, setStkData] = useState([]);
@@ -190,59 +244,57 @@ function PositionsPage(props) {
 
       .catch((err) => console.log(err));
   }
+  function startIntervl() {}
 
   useEffect(() => {
     // callPositions();
     const MINUTE_MS = 7500;
-
+    console.log(props.positionPage);
     const interval = setInterval(() => {
-      callPositions();
+      if (props.positionPage) {
+        callPositions();
+      } else {
+        return true;
+      }
     }, MINUTE_MS);
-  }, []);
+
+    return () => {
+      clearInterval(interval);
+    };
+
+    //   return () => {
+    //   };
+    // }
+  }, [props.positionPage]);
+  console.log(props.orderdata);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        width: "100%",
-        // backgroundColor: "red",
-      }}
+    <ToastContainer
+      position="top-end"
+      style={{ maxHeight: "500px", height: "500px" }}
     >
-      {!positions.length > 0 ? (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
+      <Toast
+        onClose={() => props.dispatch(unsetPositionPage(false))}
+        show={props.positionPage}
+        // show={true}
+        style={{ width: "25rem" }}
+        bg={"dark"}
+      >
+        <Toast.Header
+          style={{ display: "flex", justifyContent: "space-between" }}
         >
-          <h6>Getting Data From Server</h6>
-          <MiniLoader />
-        </div>
-      ) : (
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            width: "100%",
-            flexDirection: "column",
-          }}
-        >
-          <h4
+          <div
             style={{
-              width: "100%",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              borderBottom: "2px solid white",
+              backgroundColor: "black",
+              minWidth: "1rem",
+              height: "1rem",
+              borderRadius: "1rem",
             }}
-          >
-            Positions
-          </h4>
+          ></div>
 
+          <strong>Positions</strong>
+        </Toast.Header>
+        <Toast.Body className={"Dark" && "text-white"}>
           <div
             style={{
               display: "flex",
@@ -250,114 +302,134 @@ function PositionsPage(props) {
               justifyContent: "center",
               alignItems: "center",
               width: "100%",
+
               gap: "10px",
+              overflowX: "hidden",
+              overfolwY: "scroll",
             }}
           >
             {positions.length > 0 ? (
               positions.map((value, index) => {
                 return (
                   <Card
-                    border="warning"
-                    style={{ width: "100%", backgroundColor: "inherit" }}
+                    style={{
+                      width: "100%",
+                      //   border: "0.5px solid white",
+                      borderRadius: "1%",
+                    }}
                   >
-                    <Card.Header
-                      // variant={}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        backgroundColor: value.pnl.includes("-")
-                          ? "#cd3131"
-                          : "#60c029",
-                      }}
-                    >
-                      <strong>{value.tradingsymbol}</strong>
-                      <strong>
-                        {parseInt(value.buyavgprice) > 0 ? (
-                          <p>
-                            BUY({value.netqty}) <br />
-                            {value.buyavgprice}-{value.ltp}
-                            {/* {parseInt(value.ltp) - parseInt(value.buyavgprice)} */}
-                          </p>
-                        ) : (
-                          <p>
-                            SELL({value.netqty})
-                            <br />
-                            {value.sellavgprice}-{value.ltp}
-                            {/* {parseInt(value.ltp) - parseInt(value.sellavgprice)} */}
-                          </p>
-                        )}
-                      </strong>
-                    </Card.Header>
-                    <Card.Body>
-                      <Card.Title
+                    {value.netqty > 0 ? (
+                      <Card.Header
+                        // variant={}
                         style={{
                           display: "flex",
+                          borderRadius: "1%",
                           justifyContent: "space-between",
                           alignItems: "center",
+                          backgroundColor: value.pnl.includes("-")
+                            ? "#cd3121"
+                            : "#60c519",
                         }}
                       >
-                        <div>
-                          <p>{value.producttype}</p>
-                          {value.exchange}
-                        </div>
-
-                        <p>
-                          {value.pnl.includes("-") ? (
-                            value.pnl
-                          ) : (
-                            <p>+{value.pnl}</p>
-                          )}{" "}
-                        </p>
-                      </Card.Title>
-                      <Card.Text
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        {value.tradingsymbol === targetValue.symbol ? (
-                          <div>
-                            {" "}
-                            TARGET-{targetValue.targetPrice} STOPLOSS-
-                            {targetValue.stopLoss}
-                          </div>
-                        ) : (
-                          <p>Position is Inactive</p>
-                        )}
-                        <Button
-                          variant="danger"
-                          // onClick={() => {
-                          //   buyOrder(value);
-                          // }}
-                          disabled
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            flexDirection: "column",
+                          }}
                         >
-                          Square Off will be automated
-                        </Button>
-                      </Card.Text>
-                    </Card.Body>
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "center",
+                              flexDirection: "row",
+                              gap: "20px",
+                            }}
+                          >
+                            <strong>{value.tradingsymbol}</strong>
+                            <strong>{value.exchange}</strong>
+                          </div>
+
+                          {parseInt(value.buyavgprice) > 0 ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "center",
+                                flexDirection: "column",
+                                gap: "5px",
+                              }}
+                            >
+                              <p>
+                                <strong>BUY</strong>({value.netqty})
+                              </p>
+                              {value.buyavgprice}
+                            </div>
+                          ) : (
+                            <p>
+                              SELL({value.netqty}){value.exchange}
+                              {value.sellavgprice}
+                              {/* {parseInt(value.ltp) - parseInt(value.sellavgprice)} */}
+                            </p>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            flexDirection: "column",
+                          }}
+                        >
+                          <strong>{value.ltp}</strong>
+                          {value.pnl}
+                        </div>
+                      </Card.Header>
+                    ) : (
+                      <Card.Header
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          borderRadius: "1%",
+
+                          backgroundColor: value.pnl.includes("-")
+                            ? "#cd3121"
+                            : "#60c519",
+                        }}
+                      >
+                        <strong>{value.tradingsymbol}</strong>
+                        <strong>{value.pnl}</strong>
+                      </Card.Header>
+                    )}
                   </Card>
                 );
               })
             ) : (
-              <div style={{ width: "100%", height: "100%" }}>
-                <h5>No Positions</h5>
+              <div style={{ width: "100%" }}>
+                <MiniLoader />
               </div>
             )}
           </div>
-        </div>
-      )}
-    </div>
+        </Toast.Body>
+      </Toast>
+
+      {/* <Toast>
+      <Toast.Header>
+        <img src="holder.js/20x20?text=%20" className="rounded me-2" alt="" />
+        <strong className="me-auto">Bootstrap</strong>
+        <small className="text-muted">2 seconds ago</small>
+      </Toast.Header>
+      <Toast.Body>Heads up, toasts will stack automatically</Toast.Body>
+    </Toast> */}
+    </ToastContainer>
   );
 }
 
 const mapStateToProps = (state) => ({
   orderPlaced: state.Order.orderPlaced,
-  orderData: state.Order.orderData,
+  orderdata: state.Order.orderData,
   wholeData: state.DataCsv.jsonData,
+  positionPage: state.Order.OpenPositionPage,
 
   // logData: state.Log.logData,
 });
 
-export default connect(mapStateToProps, undefined)(PositionsPage);
+export default connect(mapStateToProps, undefined)(PositionToast);

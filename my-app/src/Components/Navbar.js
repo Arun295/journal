@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { loger, setCanvas } from "../actions/basicActions";
+import {
+  loger,
+  setCanvas,
+  setPositionPage,
+  unsetPositionPage,
+} from "../actions/basicActions";
 import { login } from "../userFunctions/UserFunctions";
 import { connect } from "react-redux";
 import Nav from "react-bootstrap/Nav";
@@ -7,8 +12,10 @@ import { NavDropdown } from "react-bootstrap";
 import ModalAlert from "./ModalAlert";
 import { Link } from "react-router-dom";
 import { Button } from "react-bootstrap";
+import Caanvas from "./Caanvas";
 function Navbar(props) {
   const [modal, setmodal] = useState(false);
+  const [canvas, setCanvas] = useState(undefined);
   function LoginUser() {
     login("/login")
       .then((response) => {
@@ -98,23 +105,40 @@ function Navbar(props) {
                 //https://bullsarenatrading.com/trading-strategies/best-intraday-strategy/
                 textAlign: "center",
               }}
-              to="/orderpage"
+              onClick={() => {
+                props.dispatch(unsetPositionPage(true));
+              }}
             >
               <h6>Orders & Positions</h6>
             </Link>
             <h6>
               <NavDropdown title="Strategies" id="basic-nav-dropdown">
-                <NavDropdown.Item href="#action/3.1">
-                  GapUp& Gapdown
+                <NavDropdown.Item href="#action/3.1" onClick={() => {}}>
+                  GapUp&Gapdown
                 </NavDropdown.Item>
-                <NavDropdown.Item href="#action/3.2">
+                <NavDropdown.Item
+                  // href="#action/3.2"
+                  onClick={() => {
+                    setCanvas(true);
+                  }}
+                >
                   Another action
                 </NavDropdown.Item>
-                <NavDropdown.Item href="#action/3.3">
+                <NavDropdown.Item
+                  href="#action/3.3"
+                  onClick={() => {
+                    setCanvas("Another action");
+                  }}
+                >
                   Something
                 </NavDropdown.Item>
                 <NavDropdown.Divider />
-                <NavDropdown.Item href="#action/3.4">
+                <NavDropdown.Item
+                  href="#action/3.4"
+                  onClick={() => {
+                    setCanvas("Something");
+                  }}
+                >
                   Separated link
                 </NavDropdown.Item>
               </NavDropdown>
@@ -133,6 +157,7 @@ function Navbar(props) {
             Login
           </Button>
         </div>
+        {/* {<Caanvas canvas={canvas} />} */}
 
         {/* </Nav> */}
       </nav>

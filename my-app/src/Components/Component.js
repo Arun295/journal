@@ -14,15 +14,24 @@ import Navbar from "./Navbar";
 import SecondaryNav from "./SecondaryNav";
 import YestjsonData from "./YestjsonData";
 import { connect } from "react-redux";
-import { setOhldata, readData, niftyData } from "../actions/basicActions";
+import {
+  setOhldata,
+  readData,
+  niftyData,
+  setGapUpDown,
+  activateOhl,
+  activateReversal,
+} from "../actions/basicActions";
 import MessageToast from "./MessageToast";
+import BreadCrumb from "./BreadCrumb";
+import PositionToast from "./PositionToast";
 
 function Component(props) {
   const [topGainerData, settopGainerData] = useState([]);
   const [topLooserData, settopLooserData] = useState([]);
   const [topGainerDataReceived, settopGainerDataReceived] = useState(false);
   const [topLooserDataReceived, settopLooserDataReceived] = useState(false);
-  const [startohl, setOhl] = useState(false);
+  const [startohl, setOhl] = useState("");
   const [writejson, setWritejson] = useState(false);
   const [timer, settimer] = useState(false);
   const [niftystks, setNiftyStks] = useState([]);
@@ -31,7 +40,7 @@ function Component(props) {
   const [ytopLooserData, ysettopLooserData] = useState([]);
 
   useEffect(() => {
-    const MINUTE_MS = 7000;
+    const MINUTE_MS = 18000;
 
     function fetchTopGainersData() {
       return getGainers("/topgainers")
@@ -39,6 +48,7 @@ function Component(props) {
           // console.log(res);
           if (res.data) {
             settopGainerData(res.data);
+
             settopGainerDataReceived(true);
 
             return true;
@@ -76,8 +86,11 @@ function Component(props) {
     function fetchNiftyOhlData() {
       getNiftyStocksOhl("/get_nifty_fifty_stocks_ohl")
         .then((res) => {
-          if (res.data.length > 0) {
-            props.dispatch(setOhldata(res.data));
+          // console.log(res.data.op);
+          if (res.data) {
+            props.dispatch(setGapUpDown(res.data.gp));
+            // console.log(res.data);
+            props.dispatch(setOhldata(res.data.op));
           } else {
             console.log("No Response Data");
           }
@@ -93,6 +106,50 @@ function Component(props) {
         })
         .catch((err) => console.log(err));
     }
+    function timebaseTrading(time) {
+      console.log("running");
+      if (
+        parseInt(time.split(":")[0]) === 9 &&
+        time.split(":")[2].includes("AM") &&
+        parseInt(time.split(":")[1]) >= 20 &&
+        parseInt(time.split(":")[1] < 45)
+      ) {
+        console.log("best time for ohl");
+        setOhl("Started");
+        props.dispatch(activateOhl(true));
+      } else if (
+        (parseInt(time.split(":")[0]) === 9 || 10) &&
+        time.split(":")[2].includes("AM")
+      ) {
+        props.dispatch(activateOhl(false));
+        setOhl("Finished");
+        if (
+          parseInt(time.split(":")[0]) === 10 &&
+          parseInt(time.split(":")[1]) >= 0 &&
+          parseInt(time.split(":")[1]) < 15
+        ) {
+          props.dispatch(activateReversal(true));
+          console.log("Take Reveral GapUpDown");
+        } else if (
+          parseInt(time.split(":")[0]) === 10 &&
+          parseInt(time.split(":")[1]) >= 30
+        ) {
+          props.dispatch(activateReversal(false));
+          console.log("take directional GapUpDown");
+        } else if (
+          parseInt(time.split(":")[0]) === 9 &&
+          parseInt(time.split(":")[1]) >= 50
+        ) {
+          console.log("Take Reveral GapUpDown");
+          props.dispatch(activateReversal(true));
+        } else {
+          props.dispatch(activateReversal(false));
+          console.log("time expired take directional gapup");
+        }
+
+        console.log("ohl is closed");
+      }
+    }
 
     // fetchTopGainersData();
     // fetchTopLoosersData();
@@ -102,14 +159,27 @@ function Component(props) {
 
     const interval = setInterval(() => {
       const time = new Date().toLocaleTimeString();
-      // console.log("hii");
-
+      // console.log(
+      //   time.split(":"),
+      //   parseInt(time.split(":")[0]),
+      //   parseInt(time.split(":")[1]),
+      //   parseInt(time.split(":")[2])
+      // );
       let z = fetchTopGainersData();
       let y = fetchTopLoosersData();
       fetchNiftyOhlData();
-
       // fetchYJsonData();
-      // console.log(time);
+      // console.log(time)
+
+      //   if(parseInt(time.split(":")[1] <= 50)){
+      //     console.log('reversal Gapup& down')
+
+      //   }
+      //   console.log("best time for ohl");
+      // } else {
+      //   console.log("gapUp and Down  is closed");
+      // }
+      timebaseTrading(time);
 
       if (
         parseInt(time.split(":")[0]) >= 3 &&
@@ -117,9 +187,7 @@ function Component(props) {
         time.split(":")[2].includes("PM")
       ) {
         setWritejson(true);
-
         // console.log("writting json ");
-
         return () => clearInterval(interval);
       }
     }, MINUTE_MS);
@@ -157,15 +225,24 @@ function Component(props) {
 
   //   // return <span>{z}</span>;
   // }
-  // console.log(props.niftyFiftyData);
+  // console.log(props.activatedOhl, props.activatedReversal);
   return (
     <div class="main-component">
       {props.orderPlaced ? <MessageToast /> : null}
+      {props.positionPage ? <PositionToast /> : null}
+      {/* <PositionToast /> */}
 
       <div class="sub-main-component">
         <Navbar />
         <div style={{}}>
+          <h5>OPEN/HIGH/LOW Timing 9:15-9:40</h5>
+
           <SecondaryNav niftystks={niftystks} />
+        </div>
+        <div>
+          <h5>GapUp/Gapdown BUY 9:15-9:40 SELL 9:45-10:50</h5>
+
+          <BreadCrumb />
         </div>
 
         <div class="gain-loose-data-y">
@@ -338,6 +415,9 @@ function Component(props) {
 const mapStateToProps = (state) => ({
   orderPlaced: state.Order.orderPlaced,
   niftyFiftyData: state.NiftyData.niftyData,
+  positionPage: state.Order.OpenPositionPage,
+  activatedOhl: state.activateOhl.ohlActivated,
+  activatedReversal: state.activatereversal.reversalTrade,
 
   // logData: state.Log.logData,
 });

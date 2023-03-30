@@ -72,18 +72,29 @@ def get_nifty_fifty_stocks_ohl():
     # stk_lst = []
 
     nse = Nse()
-    op = []
+    output = {}
+    op=[]
+    gp=[]
     for i in df.Symbol:
         # print(i)
         stk_data = nse.get_quote(str(i))
         if int(stk_data['dayHigh']) == int(stk_data['open']):
-            op.append({'symbol': i, 'pos': 'open-high',
-                      'open': stk_data['open'], 'high': stk_data['dayHigh'], 'ltp': stk_data['lastPrice'], 'low': stk_data['dayLow']})
+                          op.append({'symbol': i, 'pos': 'open-high','open': stk_data['open'], 'high': stk_data['dayHigh'], 'ltp': stk_data['lastPrice'], 'low': stk_data['dayLow'],})
+
         elif int(stk_data['dayLow']) == int(stk_data['open']):
             op.append({'symbol': i, 'pos': 'open-low',
-                      'open': stk_data['open'], 'low': stk_data['dayLow'], 'ltp': stk_data['lastPrice'], 'high': stk_data['dayHigh']})
-
-    return op
+                      'open': stk_data['open'], 'low': stk_data['dayLow'], 'ltp': stk_data['lastPrice'], 'high': stk_data['dayHigh'],})
+        else:
+            if int(stk_data['previousClose']) < int(stk_data['open']):
+                 gp.append({'symbol': i, 'previousdayclose':stk_data['previousClose'],
+                      'open': stk_data['open'], 'high': stk_data['dayHigh'], 'ltp': stk_data['lastPrice'], 'low': stk_data['dayLow'] ,'pos':'gap-up'})
+            elif int(stk_data['previousClose']) > int(stk_data['open']):
+                gp.append({'symbol': i,'previousdayclose':stk_data['previousClose'],
+                'open': stk_data['open'], 'low': stk_data['dayLow'], 'ltp': stk_data['lastPrice'], 'high': stk_data['dayHigh'],'pos':"gap-down"})
+    output['op']=op
+    output['gp']=gp
+    # print(output)
+    return output
 
 
 def findohl(symbols):

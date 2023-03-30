@@ -318,7 +318,9 @@ function OrderPosition(props) {
           )}
         </div>
       ) : (
-        <PositionsPage />
+        <div style={{ width: "100%", height: "100%" }}>
+          <PositionsPage />
+        </div>
       )}
 
       {/* <div style={{ marginLeft: "10px" }}>order Data</div> */}
