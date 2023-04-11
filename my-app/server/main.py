@@ -1,4 +1,5 @@
 from smartapi import SmartConnect, SmartWebSocket
+from jugaad_data.nse import NSELive
 import pyotp
 from nsetools import Nse
 import requests
@@ -8,6 +9,9 @@ import datetime
 import json
 import pandas as pd
 import io
+import os
+
+import os
 
 
 def getlivefeed(feedToken, personal_data):
@@ -45,10 +49,16 @@ def getlivefeed(feedToken, personal_data):
     ss.connect()
 
 
-def read_data():
+def read_data(dataframe=False):
+    file_name='stockdata'
+    cwd = os.getcwd()
+    path=cwd.split('\\server')[0]+'\\src\\Data'
+
     try:
-        df = pd.read_excel(
-            'C:\\Users\\arunm\\OneDrive\\Desktop\\journal\\my-app\\src\\Data\\stockdata.xlsx', 'stockdata')
+        df = pd.read_excel(f'{path}\\{file_name}.xlsx', file_name, engine='openpyxl')
+        if(dataframe):
+            return df
+
     # print(df.set_index('symbol')['token'].to_dict())
         # df = df.replace({np.nan: None})
 
@@ -59,31 +69,116 @@ def read_data():
             'https://margincalculator.angelbroking.com/OpenAPI_File/files/OpenAPIScripMaster.json').json()
 
         return data
+def get_nifty_stocks():
+    file_name='niftydata'
+    cwd = os.getcwd()
+    path=cwd.split('\\server')[0]+'\\src\\Data'
+    df = pd.read_excel(
+        f'{path}\\{file_name}.xlsx', engine='openpyxl')
+    stks=[]
+    for i in df.Symbol:
+        stks.append(i)
+
+    return stks
+
+
 
 
 def get_nifty_fifty_stocks_ohl():
-
+    file_name='niftydata'
+    cwd = os.getcwd()
+    path=cwd.split('\\server')[0]+'\\src\\Data'
     df = pd.read_excel(
-        'C:\\Users\\arunm\\OneDrive\\Desktop\\journal\\my-app\\src\\Data\\niftydata.xlsx')
+        f'{path}\\{file_name}.xlsx', engine='openpyxl')
+
 
     # url = 'https://archives.nseindia.com/content/indices/ind_nifty50list.csv'
     # z = requests.get(url).content
     # df = pd.read_csv(io.StringIO(z.decode('utf-8')))
     # stk_lst = []
-
-    nse = Nse()
-    op = []
-    for i in df.Symbol:
+    output = {}
+    op=[]
+    gp=[]
+    try:
+        nse = Nse()
+        for i in df.Symbol:
         # print(i)
-        stk_data = nse.get_quote(str(i))
-        if int(stk_data['dayHigh']) == int(stk_data['open']):
-            op.append({'symbol': i, 'pos': 'open-high',
-                      'open': stk_data['open'], 'high': stk_data['dayHigh'], 'ltp': stk_data['lastPrice'], 'low': stk_data['dayLow']})
-        elif int(stk_data['dayLow']) == int(stk_data['open']):
-            op.append({'symbol': i, 'pos': 'open-low',
-                      'open': stk_data['open'], 'low': stk_data['dayLow'], 'ltp': stk_data['lastPrice'], 'high': stk_data['dayHigh']})
+            stk_data = nse.get_quote(str(i))
+            if int(stk_data['dayHigh']) == int(stk_data['open']):
+                            op.append({'symbol': i, 'pos': 'open-high','open': stk_data['open'], 'high': stk_data['dayHigh'], 'ltp': stk_data['lastPrice'], 'low': stk_data['dayLow'],})
 
-    return op
+            elif int(stk_data['dayLow']) == int(stk_data['open']):
+                op.append({'symbol': i, 'pos': 'open-low',
+                        'open': stk_data['open'], 'low': stk_data['dayLow'], 'ltp': stk_data['lastPrice'], 'high': stk_data['dayHigh'],})
+            else:
+                if int(stk_data['previousClose']) < int(stk_data['open']):
+                    gp.append({'symbol': i, 'previousdayclose':stk_data['previousClose'],
+                        'open': stk_data['open'], 'high': stk_data['dayHigh'], 'ltp': stk_data['lastPrice'], 'low': stk_data['dayLow'] ,'pos':'gap-up'})
+                elif int(stk_data['previousClose']) > int(stk_data['open']):
+                    gp.append({'symbol': i,'previousdayclose':stk_data['previousClose'],
+                    'open': stk_data['open'], 'low': stk_data['dayLow'], 'ltp': stk_data['lastPrice'], 'high': stk_data['dayHigh'],'pos':"gap-down"})
+        output['op']=op
+        output['gp']=gp
+        # print(output)
+        return output
+
+    except Exception as e:
+        # print(e)
+        nse = NSELive()
+    
+        for i in df.Symbol:
+            # print(i)
+            stk_data = nse.stock_quote(str(i))
+            # stk_data['priceInfo']['']
+            stk_data=stk_data['priceInfo']
+            stk_high_low=stk_data['intraDayHighLow']
+            if int(stk_high_low['max']) == int(stk_data['open']):
+                            op.append({'symbol': i, 'pos': 'open-high','open': stk_data['open'], 'high': stk_high_low['max'], 'ltp': stk_high_low['value'], 'low': stk_high_low['min'],})
+
+            elif int(stk_high_low['min']) == int(stk_data['open']):
+                op.append({'symbol': i, 'pos': 'open-low',
+                        'open': stk_data['open'], 'low': stk_high_low['min'], 'ltp':stk_high_low['value'], 'high': stk_high_low['max'],})
+            else:
+                if int(stk_data['previousClose']) < int(stk_data['open']):
+                    gp.append({'symbol': i, 'previousdayclose':stk_data['previousClose'],
+                        'open': stk_data['open'], 'high': stk_high_low['max'], 'ltp': stk_high_low['value'], 'low': stk_high_low['min'],'pos':"gap-down"})
+                elif int(stk_data['previousClose']) > int(stk_data['open']):
+                    gp.append({'symbol': i,'previousdayclose':stk_data['previousClose'],
+                    'open': stk_data['open'], 'high': stk_high_low['max'], 'ltp': stk_high_low['value'], 'low': stk_high_low['min'],'pos':"gap-down"})
+        output['op']=op
+        output['gp']=gp
+        # print(output)
+        return output
+        
+
+    
+
+
+
+
+
+
+
+    # for i in df.Symbol:
+    #     # print(i)
+    #     stk_data = nse.get_quote(str(i))
+    #     if int(stk_data['dayHigh']) == int(stk_data['open']):
+    #                       op.append({'symbol': i, 'pos': 'open-high','open': stk_data['open'], 'high': stk_data['dayHigh'], 'ltp': stk_data['lastPrice'], 'low': stk_data['dayLow'],})
+
+    #     elif int(stk_data['dayLow']) == int(stk_data['open']):
+    #         op.append({'symbol': i, 'pos': 'open-low',
+    #                   'open': stk_data['open'], 'low': stk_data['dayLow'], 'ltp': stk_data['lastPrice'], 'high': stk_data['dayHigh'],})
+    #     else:
+    #         if int(stk_data['previousClose']) < int(stk_data['open']):
+    #              gp.append({'symbol': i, 'previousdayclose':stk_data['previousClose'],
+    #                   'open': stk_data['open'], 'high': stk_data['dayHigh'], 'ltp': stk_data['lastPrice'], 'low': stk_data['dayLow'] ,'pos':'gap-up'})
+    #         elif int(stk_data['previousClose']) > int(stk_data['open']):
+    #             gp.append({'symbol': i,'previousdayclose':stk_data['previousClose'],
+    #             'open': stk_data['open'], 'low': stk_data['dayLow'], 'ltp': stk_data['lastPrice'], 'high': stk_data['dayHigh'],'pos':"gap-down"})
+    # output['op']=op
+    # output['gp']=gp
+    # # print(output)
+    # return output
 
 
 def findohl(symbols):
@@ -106,7 +201,7 @@ def findohl(symbols):
 #     print(symbols)
 #     personal_data = {
 #         'angel_code': 'P205239',
-#         'Api_key': 'NZkxURxG',
+#         'Api_key': 'heInmbVF',
 #         'pswd': '3773',
 #         'otpkey': "YSSC6X4LGTKQMBIRE56FCZZI44"}
 
@@ -152,7 +247,7 @@ def findohl(symbols):
 
 def sell_order(params):
 
-    price = params['price']
+    # price = params['price']
     data = params['stockdata']
     symbol = data['symbol']
     token = data['token']
@@ -165,7 +260,7 @@ def sell_order(params):
 
     personal_data = {
         'angel_code': 'P205239',
-        'Api_key': 'NZkxURxG',
+        'Api_key': 'heInmbVF',
         'pswd': '3773',
         'otpkey': "YSSC6X4LGTKQMBIRE56FCZZI44"}
     print(params)
@@ -196,10 +291,102 @@ def sell_order(params):
     return orderId
 
 
-def buy_order(params):
+
+def exit_market_sell_order(params):
+    price = params['ltp']
+    # data = params['stockdata']
+    symbol = params['tradingsymbol']
+    token = params['symboltoken']
+    exg = params['exchange']
+    quantity = params['netqty']
+    if '-' in quantity:
+        quantity=quantity.split('-')[1]
+    print(price,token,symbol,exg,quantity)
+    personal_data = {
+        'angel_code': 'P205239',
+        'Api_key': 'heInmbVF',
+        'pswd': '3773',
+        'otpkey': "YSSC6X4LGTKQMBIRE56FCZZI44"}
+    # # print(params)
+    obj = SmartConnect(api_key=personal_data['Api_key'])
+
+    data = obj.generateSession(personal_data['angel_code'], personal_data['pswd'], pyotp.TOTP(
+        personal_data['otpkey']).now())
+    refreshToken = data['data']['refreshToken']
+    feedToken = obj.getfeedToken()
+    orderparams = {
+        "variety":"NORMAL",
+        "tradingsymbol":str(symbol),
+        "symboltoken":str(token),
+        "transactiontype":"SELL",
+        "exchange":str(exg),
+        "ordertype":"MARKET",
+        "producttype":"INTRADAY",
+        "duration":"DAY",
+        "price":'0',
+        "squareoff":"0",
+        "stoploss":"0",
+        "quantity":str(quantity)
+
+    }
+    orderId = obj.placeOrder(orderparams)
+    print(orderId)
+
+    return orderId
+
+
+
+
+def exit_market_buy_order(params):
     # print(params)
 
-    price = params['price']
+    price = params['ltp']
+    # data = params['stockdata']
+    symbol = params['tradingsymbol']
+    token = params['symboltoken']
+    exg = params['exchange']
+    quantity = params['netqty']
+    if '-' in quantity:
+        quantity=quantity.split('-')[1]
+    print(price,token,symbol,exg,quantity)
+    personal_data = {
+        'angel_code': 'P205239',
+        'Api_key': 'heInmbVF',
+        'pswd': '3773',
+        'otpkey': "YSSC6X4LGTKQMBIRE56FCZZI44"}
+    # # print(params)
+    obj = SmartConnect(api_key=personal_data['Api_key'])
+
+    data = obj.generateSession(personal_data['angel_code'], personal_data['pswd'], pyotp.TOTP(
+        personal_data['otpkey']).now())
+    refreshToken = data['data']['refreshToken']
+    feedToken = obj.getfeedToken()
+    orderparams = {
+        "variety":"NORMAL",
+        "tradingsymbol":str(symbol),
+        "symboltoken":str(token),
+        "transactiontype":"BUY",
+        "exchange":str(exg),
+        "ordertype":"MARKET",
+        "producttype":"INTRADAY",
+        "duration":"DAY",
+        "price":'0',
+        "squareoff":"0",
+        "stoploss":"0",
+        "quantity":str(quantity)
+
+    }
+    orderId = obj.placeOrder(orderparams)
+    print(orderId)
+
+    return orderId
+
+
+
+def buy_order(params):
+    print(params)
+
+    # price = params['price']
     data = params['stockdata']
     symbol = data['symbol']
     token = data['token']
@@ -212,7 +399,7 @@ def buy_order(params):
 
     personal_data = {
         'angel_code': 'P205239',
-        'Api_key': 'NZkxURxG',
+        'Api_key': 'heInmbVF',
         'pswd': '3773',
         'otpkey': "YSSC6X4LGTKQMBIRE56FCZZI44"}
     # # print(params)
@@ -246,7 +433,7 @@ def buy_order(params):
 def get_position_data():
     personal_data = {
         'angel_code': 'P205239',
-        'Api_key': 'NZkxURxG',
+        'Api_key': 'heInmbVF',
         'pswd': '3773',
         'otpkey': 'YSSC6X4LGTKQMBIRE56FCZZI44'}
     obj = SmartConnect(api_key=personal_data['Api_key'])
@@ -263,7 +450,7 @@ def get_order_details(params):
 
     personal_data = {
         'angel_code': 'P205239',
-        'Api_key': 'NZkxURxG',
+        'Api_key': 'heInmbVF',
         'pswd': '3773',
         'otpkey': "YSSC6X4LGTKQMBIRE56FCZZI44"}
     # # print(params)
@@ -363,7 +550,11 @@ def get_stock_data(params):
 def writeJson(data):
     # print("############################", data['data'])
     # yesterday_gainer = data['data']['yesterdaygainers']
-    with open("C:\\Users\\arunm\\OneDrive\\Desktop\\journal\\my-app\\src\\Data\\data.json", 'w') as f:
+    file_name='data'
+    cwd = os.getcwd()
+    path=cwd.split('\\server')[0]+'\\src\\Data'
+
+    with open(f"{path}\\{file_name}.json", 'w') as f:
         json.dump(data['data'], f)
 
     return {'status': 'Success'}
@@ -371,13 +562,17 @@ def writeJson(data):
 
 def readJson():
     # yesterday_gainer = data['data']['yesterdaygainers']
+    file_name='niftydata'
+    cwd = os.getcwd()
+    path=cwd.split('\\server')[0]+'\\src\\Data'
+
     url = 'https://archives.nseindia.com/content/indices/ind_nifty50list.csv'
     z = requests.get(url).content
     df = pd.read_csv(io.StringIO(z.decode('utf-8')))
     df.to_excel(
-        'C:\\Users\\arunm\\OneDrive\\Desktop\\journal\\my-app\\src\\Data\\niftydata.xlsx')
+        f'{path}\\{file_name}.xlsx', engine='openpyxl',)
 
-    with open("C:\\Users\\arunm\\OneDrive\\Desktop\\journal\\my-app\\src\\Data\\data.json", 'r') as f:
+    with open(f"{path}\\data.json", 'r') as f:
         data = f.read()
         # print(data)
         return data
@@ -386,7 +581,7 @@ def readJson():
 def login():
     personal_data = {
         'angel_code': 'P205239',
-        'Api_key': 'NZkxURxG',
+        'Api_key': 'heInmbVF',
         'pswd': '3773',
         'otpkey': "YSSC6X4LGTKQMBIRE56FCZZI44"}
 
