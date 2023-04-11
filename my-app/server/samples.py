@@ -8,6 +8,11 @@ from smartapi import SmartConnect, SmartWebSocket
 import io
 import pyotp
 nse = Nse()
+import os
+import datetime
+import holidays
+from datetime import timedelta
+import time
 
 # data = pd.read_excel('C:\\Users\\arunm\\OneDrive\\Desktop\\journal\\my-app\\src\\Data\\stockdata.xlsx', 'stockdata',
 #                      usecols=['symbol', 'token', 'exch_seg'])
@@ -21,9 +26,18 @@ nse = Nse()
 # init = 0
 
 # ma = 10
-# tod = datetime.datetime.now()
-# print()
-# print(str(tod).split(':')[0]+':'+(str(tod).split(':')[1]))
+tod = datetime.datetime.now()
+print(str(tod).split(' ')[0])
+
+
+# import os
+# cwd = os.getcwd()
+# print(cwd.split('\\server')[0]+'\\src\\Data')
+
+
+
+
+
 
 
 # d = datetime.timedelta(days=ma)
@@ -216,10 +230,37 @@ def placeorder():
 #                   'open': stk_data['open'], 'low': stk_data['dayLow'], 'ltp': stk_data['lastPrice'], 'high': stk_data['dayHigh']})
 
 # print(op)
+# from jugaad_data.nse import NSELive
+# n = NSELive()
+# q = n.stock_quote("HDFC")
+# print(q['priceInfo'])
+
+# import requests
+
+# session = requests.session()
+
+# head = {
+#     "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+#                   "Chrome/87.0.4280.88 Safari/537.36 "
+# }
+
+
+# def getId(name):
+#     search_url = 'https://www.nseindia.com/api/search/autocomplete?q={}'
+#     get_details = 'https://www.nseindia.com/api/quote-equity?symbol={}'
+#     session.get('https://www.nseindia.com/', headers=head)
+#     search_results = session.get(url=search_url.format(name), headers=head)
+#     search_result = search_results.json()['symbols'][0]['symbol']
+
+#     company_details = session.get(url=get_details.format(search_result), headers=head)
+#     return company_details.json()['info']['identifier']
+
+# print(getId('tata motors'))
+
 def login():
     personal_data = {
         'angel_code': 'P205239',
-        'Api_key': 'ebWK3NhV',
+        'Api_key': 'heInmbVF',
         'pswd': '3773',
         'otpkey': 'YSSC6X4LGTKQMBIRE56FCZZI44'}
 
@@ -231,6 +272,114 @@ def login():
         personal_data['otpkey']).now())
     refreshToken = data['data']['refreshToken']
     feedToken = obj.getfeedToken()
+    # today_date=str(tod).split(' ')[0]
+    # hrs=str(tod).split(' ')[1].split(':')[0]
+    # mins=str(tod).split(' ')[1].split(':')[1]
+
+    # print(str(tod).split(' ')[1].split(':'))
+
+    
+    
+    day=datetime.date.today()
+    tod = datetime.datetime.now()
+    today_date=str(tod).split(' ')[0]
+    hrs=str(tod).split(' ')[1].split(':')[0]
+    mins=str(tod).split(' ')[1].split(':')[1]
+    yesterday=day-timedelta(days=1)
+    day_before_yesterday = day - timedelta(days = 2)
+    leave = holidays.India()
+    print(yesterday.strftime('%A'),hrs,mins)
+    z=725-723
+
+    high_percentage_range=700*(0.5/100)
+    low_percentage_range=700*(0.2/100)
+    if(z>low_percentage_range and z<high_percentage_range):
+        print('True',high_percentage_range,z,low_percentage_range)
+    else:
+        print('false',high_percentage_range,z,low_percentage_range)
+
+
+
+    # if(yesterday.strftime('%A') == 'Saturday' or yesterday.strftime('%A') == 'Sunday'):
+    #     if yesterday.strftime('%A') == 'Saturday':
+    #             yesterday = yesterday - timedelta(days = 1)
+    #     if yesterday.strftime('%A') == 'Sunday':
+    #             yesterday = yesterday - timedelta(days = 2)
+    #     if(yesterday in leave):
+    #              print(yesterday,'is leave shifting day before')
+    #              yesterday = yesterday - timedelta(days = 1)
+    # yesterday = yesterday - timedelta(days = 2)
+
+    # print(yesterday,yesterday.strftime('%A'))
+    # historicParam={
+    #                 "exchange": "NSE",
+    #                 "symboltoken": "3045",
+    #                 "interval": "ONE_DAY",
+    #                 "fromdate": f"{str(yesterday)} 09:15", 
+    #                 "todate": f"{today_date} {hrs}:{mins}"
+    #                 }
+    # z=obj.getCandleData(historicParam)
+
+    # print("yesterday",z)
+                #  if yesterday.strftime('%A') == 'Saturday':
+                #         yesterday = yesterday - timedelta(days = 1)
+                #  elif yesterday.strftime('%A') == 'Sunday':
+                #         yesterday = yesterday - timedelta(days = 2)
+    #     else:
+    #          print('yesterday not in leave and not sat and sun ')
+    #          yesterday = yesterday - timedelta(days = 2)
+
+    #          print(yesterday.strftime('%A'),yesterday)
+    #          historicParam={
+    #                 "exchange": "NSE",
+    #                 "symboltoken": "3045",
+    #                 "interval": "ONE_DAY",
+    #                 "fromdate": f"{str(yesterday)} 09:15", 
+    #                 "todate": f"{today_date} {hrs}:{mins}"
+    #                 }
+    #          z=obj.getCandleData(historicParam)
+    #          print("yesterday",z)
+
+
+    #     # if()
+
+
+
+
+
+
+
+    #     print('leave')
+    # else:
+    #      historicParam={
+    #         "exchange": "NSE",
+    #         "symboltoken": "3045",
+    #         "interval": "ONE_DAY",
+    #         "fromdate": f"{str(day_before_yesterday)} 09:15", 
+    #         "todate": f"{today_date} {hrs}:{mins}"
+    #         }
+    #      z=obj.getCandleData(historicParam)
+    #      print("yesterday",z)
+    # print(yesterday)
+            
+
+
+    # if(day_before_yesterday and today_date in leave):
+    #     print("leave")
+    # else:
+    #     historicParam={
+    #         "exchange": "NSE",
+    #         "symboltoken": "3045",
+    #         "interval": "ONE_DAY",
+    #         "fromdate": f"{str(day_before_yesterday)} 09:15", 
+    #         "todate": f"{today_date} {hrs}:{mins}"
+    #         }
+    #     z=obj.getCandleData(historicParam)
+    #     print(z)
+            
+    
+    
+
 
     # historicParam = {
     #     'exchange': 'NSE',
@@ -249,8 +398,17 @@ def login():
     return(feedToken)
 
 
-print(login())
+# print(login())
 
+
+
+
+def sample():
+    z=[1,2,3,4,5]
+    for i in z:
+        print(z)
+        time.sleep(2)
+sample()
 
 # z = str(10.2)
 # print(z)
