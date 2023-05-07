@@ -206,6 +206,20 @@ def readJson():
         data = f.read()
         # print(data)
         return data
+    
+def getma(data):
+    # data = get_history(symbol=str(params), start=date(
+    #     2023, 3, 1), end=date(2023, 3, 13))
+    init = 0
+    count = 0
+    for i in data:
+        init = init+i[4]
+        count = count+1
+
+    avg = init/count
+    print("MA count",count)
+    return avg,count
+
 
 
 
@@ -218,6 +232,7 @@ def get_historical_data(yesterday,obj,data,five_min=False):
     end=True
     count=0
     data=data
+    stk_data=[]
     
     print(f"DATE:______{yesterday},{today_date}")
 
@@ -272,6 +287,7 @@ def get_historical_data(yesterday,obj,data,five_min=False):
                    
                         try:
                             #print(style.CYAN+data[count]['symbol'],(yesterday),(today_date)+style.RESET)
+                            yesterday = yesterday - timedelta(days =7)
                             historicParam={
                             "exchange": "NSE",
                             "symboltoken": str(data[count]['token']),
@@ -280,25 +296,8 @@ def get_historical_data(yesterday,obj,data,five_min=False):
                             "todate": f"{str(today_date)} 15:00"
                             }
                             d=obj.getCandleData(historicParam)
-                            if(d['data']==None):
-                                    yesterday = yesterday - timedelta(days = 1)
-                                    while d['data']==None:
-                                            historicParam={
-                                                      "exchange": "NSE",
-                                                        "symboltoken": str(data[count]['token']),
-                                                   "interval": "ONE_DAY",
-                                                   "fromdate": f"{str(yesterday)} 09:15", 
-                                                     "todate": f"{str(today_date)} 15:00"
-                                                    }
-                                            history_data=obj.getCandleData(historicParam)
-                                            #print(history_data,yesterday)
-                                            time.sleep(2)
-                                            if(history_data['data']==None):
-                                                    yesterday = yesterday - timedelta(days = 1)
-                                                    pass
-                                            else:
-                                                    d=history_data
-                            # print(d)
+                            ma,cnt=getma(d['data'])
+                            stk_data.append({'token':data[count]['token'],"symbol":data[count]['symbol'],"MA":ma,"cnt":cnt})
                             data[count]['history_data']=d['data'][0]
                             print(data[count])
 
@@ -306,7 +305,10 @@ def get_historical_data(yesterday,obj,data,five_min=False):
                             print("Historic Api failed: ")
                         time.sleep(2)
     # print(data)
-    return data
+    if five_min==False:
+         return stk_data
+    else:
+        return data
 
 
 def fix_yesterday_date(day):
@@ -351,7 +353,7 @@ def check_order_status(obj,orderId):
                  z= None
         return z
                  
-def ltpdata(obj,data,ohl):
+def ltpdata(obj,data,ma,ohl):
             count=0
             end=True
             calls=[]
@@ -365,20 +367,36 @@ def ltpdata(obj,data,ohl):
                 else:
                     if ohl:
                         d=obj.ltpData("NSE",f"{data[count]['symbol']}-EQ",str(data[count]['token']))
+                        stk_ma=None
+                        for i in ma:
+                            if d['symboltoken']==i['token']:
+                                stk_ma=i
+                                break
+                        print(stk_ma)
+                        if stk_ma:
+                                if d['ltp']<stk_ma["MA"]:
+                                    print(style.RED+"---------------Price is less that MA------------"+style.RESET)
                       
                          
                      
-                        if(d['data']['open']==d['data']['high']):
+                        if(d['data']['open']==d['data']['high']) and d['ltp']<stk_ma["MA"]:
+                            print(style.RED+"---------------Price is less that MA------------"+style.RESET)
                             z=d['data']
                             z['strategy']='OPEN-HIGH'
                             z['history_data']=data[count]['history_data']
+                            z['signal']="SELL"
+                            z['price']=int(z['history_data'][1]-(d['ltp']*0.15)/100)
                             # z['signal']='SELL'
                             calls.append(z)
-                        elif(d['data']['open']==d['data']['low']):
+                        if(d['data']['open']==d['data']['low']) and d['ltp']>stk_ma["MA"]:
+                            print(style.GREEN+"---------------Price is less that MA------------"+style.RESET)
+
                             z=d['data']
                             z['strategy']='OPEN-LOW'
 
                             z['history_data']=data[count]['history_data']
+                            z['signal']="BUY"
+                            z['price']=int(z['history_data'][3]+(d['ltp']*0.15)/100)
 
                             #  z['signal']='BUY'
 
@@ -390,6 +408,7 @@ def ltpdata(obj,data,ohl):
                         d=obj.ltpData("NSE",f"{data[count]['symbol']}-EQ",str(data[count]['token']))
                             
                     time.sleep(0.25)
+                #print("calls",calls)
 
               except Exception as e:
                  print(e)
@@ -419,6 +438,7 @@ def Buy_Sell_call(obj,params,quantity=0):
                 quantity = 125;
             else :
                 quantity = 75;
+        quantity=1;
                 
         orderparams = {
             "variety": "NORMAL",
@@ -518,61 +538,30 @@ def Set_Buy_Sell(obj,params):
     app=[]
     while_count=0
     # CHECK IF ANY POSITIONS WERE OPEN AND IT SHOULD NOT HAVE TO RUN SAME STOCK AGAIN
-    if(len(params)<=2):
-        for i in params:
-                status=Buy_Sell_call(obj,i)
-                print(style.BLACK+"Less no of stocks were there  starting while loop"+style.RESET)
-                if str(status['status'])=="rejected" and "Insufficient Funds" in status['message']:
-                    if(status['quantity']>100):
-                        count=0
-                        quantity=status['quantity']-25
-                        while count==0:
-                            status=Buy_Sell_call(obj,status['data'],quantity=quantity)
-                            if(str(status['status'])=="rejected" and "Insufficient Funds" in status['message'] and int(quantity) >0):
-                                quantity=quantity-25
-                                while_count+=1
-                                if status['quantity']>100 and while_count!=3:
-                                     pass
-                                else:
-                                    print(style.YELLOW+status['message']+style.RESET )
-                                    rej.append(status)
-                                    while_count=0
-                                    count+=1
-                                    break
-                                    
-                            elif(str(status['status'])=='open'):
-                                print(style.GREEN+"ORDER IS OPEN----+++++++++----"+style.RESET)
-                                print("CHECKING IF ORDER CAN BE EXECUTED IN 2 MIN  iN NOT NEXT STOCK WILL BE PLACED")
-                                time.sleep(100)
-                                z=check_order_status(obj,status['orderId'])
-                                if z['status']=="Executed" or "Completed":
-                                    print("ORDER  EXECUTED ")
-                                    print(style.YELLOW+z['message']+style.RESET )
-                                    app.append(status)
-                                    count=count+1
-                                    break
-                                else:
-                                     print("ORDER NOT EXECUTED ORDERING NEXT STOCK")
-                                     obj.cancelOrder(status['orderId'],"NORMAL")
-                                     pass
-                            else:
-                                print(style.RED+"ORDER IS REJECTED------"+style.RESET)
-                                print(style.YELLOW+status['message']+style.RESET )
-
-                                break
-
-
-                                 
-                            time.sleep(1.5)
-                    else:
-                                quantity=status['quantity']-15
+    if(len(params)!=0):
+         
+        if(len(params)<=2):
+            for i in params:
+                    status=Buy_Sell_call(obj,i)
+                    print(style.BLACK+"Less no of stocks were there  starting while loop"+style.RESET)
+                    if str(status['status'])=="rejected" and "Insufficient Funds" in status['message']:
+                        if(status['quantity']>100):
+                            count=0
+                            quantity=status['quantity']-25
+                            while count==0:
                                 status=Buy_Sell_call(obj,status['data'],quantity=quantity)
-                                if(str(status['status'])=="rejected" and "Insufficient Funds" in status['message'] and quantity >0):
-                                    rej.append(status)
-                                    print(style.RED+"ORDER IS REJECTED------"+style.RESET)
-                                    print(style.YELLOW+status['message']+style.RESET )
-
-                                    pass         
+                                if(str(status['status'])=="rejected" and "Insufficient Funds" in status['message'] and int(quantity) >0):
+                                    quantity=quantity-25
+                                    while_count+=1
+                                    if status['quantity']>100 and while_count!=3:
+                                        pass
+                                    else:
+                                        print(style.YELLOW+status['message']+style.RESET )
+                                        rej.append(status)
+                                        while_count=0
+                                        count+=1
+                                        break
+                                        
                                 elif(str(status['status'])=='open'):
                                     print(style.GREEN+"ORDER IS OPEN----+++++++++----"+style.RESET)
                                     print("CHECKING IF ORDER CAN BE EXECUTED IN 2 MIN  iN NOT NEXT STOCK WILL BE PLACED")
@@ -593,50 +582,89 @@ def Set_Buy_Sell(obj,params):
                                     print(style.YELLOW+status['message']+style.RESET )
 
                                     break
-                else:
-                    print(style.RED+"ORDER IS REJECTED------"+style.RESET)
-                    print(style.YELLOW+status['message']+style.RESET )
 
-                    break
-  
- 
-                time.sleep(1.5)
-                    
-    else:
-        for i in params:
-            status=Buy_Sell_call(obj,i)
-            if str(status['status'])=="open":
-                    print(style.GREEN+"ORDER IS OPEN----+++++++++----"+style.RESET)
-                    print("CHECKING IF ORDER CAN BE EXECUTED IN 2 MIN  iN NOT NEXT STOCK WILL BE PLACED")
-                    time.sleep(100)
-                    z=check_order_status(obj,status['orderId'])
-                    if z['status']=="Executed" or "Completed":
-                        print("ORDER  EXECUTED ")
-                        print(style.YELLOW+z['message']+style.RESET )
+
+                                    
+                                time.sleep(1.5)
+                        else:
+                                    count=0
+                                    quantity=status['quantity']-15
+                                    status=Buy_Sell_call(obj,status['data'],quantity=quantity)
+                                    if(str(status['status'])=="rejected" and "Insufficient Funds" in status['message'] and quantity >0):
+                                        rej.append(status)
+                                        print(style.RED+"ORDER IS REJECTED------"+style.RESET)
+                                        print(style.YELLOW+status['message']+style.RESET )
+
+                                        pass         
+                                    elif(str(status['status'])=='open'):
+                                        print(style.GREEN+"ORDER IS OPEN----+++++++++----"+style.RESET)
+                                        print("CHECKING IF ORDER CAN BE EXECUTED IN 2 MIN  iN NOT NEXT STOCK WILL BE PLACED")
+                                        time.sleep(100)
+                                        z=check_order_status(obj,status['orderId'])
+                                        if z['status']=="Executed" or "Completed":
+                                            print(style.YELLOW+"ORDER  EXECUTED "+style.RESET )
+                                            app.append(status)
+                                            count=count+1
+                                            break
+                                        else:
+                                            print("ORDER NOT EXECUTED ORDERING NEXT STOCK")
+                                            obj.cancelOrder(status['orderId'],"NORMAL")
+                                            pass
+                                    else:
+                                        print(style.RED+"ORDER IS REJECTED------"+style.RESET)
+                                        print(style.YELLOW+status['message']+style.RESET )
+
+                                        break
+                    elif(str(status['status'])=="open" ):
+                        print(style.RED+"ORDER IS REJECTED OR EXECUTED------"+style.RESET)
+                        print(style.YELLOW+status['message']+style.RESET )
                         app.append(status)
-                        count=count+1
+
+
                         break
                     else:
-                        print("ORDER NOT EXECUTED ORDERING NEXT STOCK")
-                        obj.cancelOrder(status['orderId'],"NORMAL")
-                        pass
-                    # print(style.YELLOW+status['message']+style.RESET )
-                    # app.append(status)
-                    # break
-            else:
-                if(str(status['status'])=="rejected"):
-                        print(style.RED+"ORDER IS REJECTED------"+style.RESET)
-                        print(style.YELLOW+status['message']+style.RESET )
-
-                        rej.append(status)
-                        pass
+                        print(style.RED+"ORDER IS REJECTED-----"+style.RESET)
+            
+    
+    
+                    time.sleep(1.5)
+                        
+        else:
+            count=0
+            for i in params:
+                status=Buy_Sell_call(obj,i)
+                if str(status['status'])=="open":
+                        print(style.GREEN+"ORDER IS OPEN----+++++++++----"+style.RESET)
+                        print("CHECKING IF ORDER CAN BE EXECUTED IN 2 MIN  iN NOT NEXT STOCK WILL BE PLACED")
+                        time.sleep(100)
+                        z=check_order_status(obj,status['orderId'])
+                        if z['status']=="Executed" or "Completed":
+                            print(style.YELLOW+"ORDER  EXECUTED "+style.RESET )
+                            app.append(status)
+                            count=count+1
+                            break
+                        else:
+                            print("ORDER NOT EXECUTED ORDERING NEXT STOCK")
+                            obj.cancelOrder(status['orderId'],"NORMAL")
+                            pass
+                        # print(style.YELLOW+status['message']+style.RESET )
+                        # app.append(status)
+                        # break
                 else:
-                        print(style.GREEN+"ORDER IS COMPLETED++++++++++++++"+style.RESET)
-                        print(style.YELLOW+status['message']+style.RESET )
+                    if(str(status['status'])=="rejected"):
+                            print(style.RED+"ORDER IS REJECTED------"+style.RESET)
+                            print(style.YELLOW+status['message']+style.RESET )
 
-                        app.append(status)
-                        break
+                            rej.append(status)
+                            pass
+                    else:
+                            print(style.GREEN+"ORDER IS COMPLETED++++++++++++++"+style.RESET)
+                            print(style.YELLOW+status['message']+style.RESET )
 
+                            app.append(status)
+                            break
+    else:
+         app.append(0)
 
     return app,rej
 
@@ -676,7 +704,7 @@ def exit_call(obj,params):
     print(orderId)
 
     return orderId
-def setohl(ohldata):
+def setohl(ohldata,ma):
     output=[]
     # fivemin_history=get_historical_data("Five_min",obj,ohldata,True)
     if len(ohldata)>0:
@@ -685,24 +713,36 @@ def setohl(ohldata):
             for item in ohldata:
 
                 if(item['strategy']=="OPEN-HIGH"):
+                    stk_ma=None
+                    for i in ma:
+                        if item['token']==i['token']:
+                              stk_ma=i
+                              break
+                    
                     # d=obj.ltpData(i['exchange'],item['tradingsymbol'],str(item['symboltoken']))
                     # item=d['data']
                     #Relace the item of open with 5 min data
+                    print(stk_ma)
+                    if stk_ma:
+                                if item['ltp']<stk_ma["MA"]:
+                                    print(style.RED+"---------------Price is less that MA------------"+style.RESET)
 
                     if(item['ltp']<=item['history_data'][1] and item['ltp']<item['history_data'][4]):
-                        price_range=item['history_data'][2]-item['history_data'][4]
-                        percentage_range=(item['history_data'][4]*0.30)/100
-                        if(percentage_range<=price_range):
-                             print(style.RED+"---------------FIRST Red candle was very big------------"+style.RESET)
-                             item['signal']="SELL"
-                             item['price']=int(item['history_data'][1]-(item['ltp']*0.1)/100)
-                             output.append(item)
-                             print('True-O=H',price_range,percentage_range,item['tradingsymbol'])
+                            price_range=item['history_data'][2]-item['history_data'][4]
+                            percentage_range=(item['history_data'][4]*0.30)/100
+                            
+                            if(percentage_range<=price_range):
+                                print(style.RED+"---------------FIRST Red candle was very big------------"+style.RESET)
+                                item['signal']="SELL"
+                                item['price']=int(item['history_data'][1]-(item['ltp']*0.15)/100)
+                                output.append(item)
+                                print('True-O=H',price_range,percentage_range,item['tradingsymbol'])
 
                     elif(item['ltp']>item['history_data'][4]):
+                            
 
                             item['signal']="SELL"
-                            item['price']=item['ltp']+int((item['ltp']*0.1)/100)
+                            item['price']=item['ltp']+int((item['ltp']*0.15)/100)
                             output.append(item)
                             print('True-O=H',item['tradingsymbol'])
 
@@ -710,23 +750,34 @@ def setohl(ohldata):
                     else:
                         pass
                         print('false-O=H Not in position to take trade',item['tradingsymbol'])
-                elif(item['strategy']=="'OPEN-LOW"):
+                else:
                     # d=obj.ltpData(item['exchange'],f"{item['symbol']}-EQ",str(item['token']))
                     # item=d['data']
+                    stk_ma=None
+                    for i in ma:
+                        if item['token']==i['token']:
+                              stk_ma=i
+                              break
                     price_range=item['history_data'][4]-item['history_data'][3]
                     percentage_range=(item['history_data'][4]*0.30)/100
+                    if stk_ma:
+                                if item['ltp']<stk_ma["MA"]:
+                                    print(style.GREEN+"---------------Price is less that MA------------"+style.RESET)
+
                     if(item['ltp']>=item['history_data'][1] and item['ltp']>item['history_data'][4]):
+                        
+
                         if(price_range>=percentage_range):
                             print(style.GREEN+"---------------FIRST Green candle was very big------------"+style.RESET)
                             item['signal']="BUY"
                             output.append(item)
-                            item['price']=int(item['history_data'][3]+(item['ltp']*0.10)/100)
+                            item['price']=int(item['history_data'][3]+(item['ltp']*0.15)/100)
                             print('True-O=L',price_range,percentage_range,item['tradingsymbol'])
                     elif(item['ltp']<item['history_data'][4]):
                             print(style.GREEN+"---------------LTP<<<CLOSE GOOD------------"+style.RESET)
                             
                             item['signal']="BUY"
-                            item['price']=int(item['ltp']-(item['ltp']*0.10)/100)
+                            item['price']=int(item['ltp']-(item['ltp']*0.15)/100)
                             output.append(item)
                             print('True-O=L:',item['tradingsymbol'])
                     else:
@@ -812,16 +863,33 @@ def get_position_data(obj,approved_data,stoploss):
                                  
 
                 else:
-                     print(style.BLUE+"EITHER SYMBOL NOT MATCHED OR nO ACTIVE POSITIONS"+style.RESET)    
+                     print(style.BLUE+f"EITHER SYMBOL NOT MATCHED OR nO ACTIVE POSITIONS------------------>\n{i}"+style.RESET)    
                      return {'status':"PAUSE",'data':"order not placed yet"}
 
 
                   
     # return z
-def timmer(hrs,mins):
+def timmer():
+
     sleep_time=0
+    readJson()
+    whole_data=read_data(True)
+    nifty_data=[]
+    nifty_stks=get_nifty_stocks()
+    for i in nifty_stks:
+                        for j in whole_data.index:
+                            # print(j['symbol'],i['symbol'])
+                            if f"{i}-EQ"== whole_data['symbol'][j]:
+
+                                nifty_data.append({'symbol':i,'token':whole_data['token'][j]})
+                                # i['token']= whole_data['token'][j]
+                                break
+    day=datetime.date.today()
+    tod = datetime.datetime.now()
+    hrs=str(tod).split(' ')[1].split(':')[0]
+    mins=str(tod).split(' ')[1].split(':')[1]
     if(int(hrs)!=9) and int(hrs)<9 :
-            sleep_time=(9-int(hrs))*60-int(mins)+15
+            sleep_time=(9-int(hrs))*60-int(mins)+16
             for i in range(sleep_time):
                     sleep_time-=1
                     print(style.BLUE+f"time left {sleep_time}"+style.RESET)
@@ -829,8 +897,8 @@ def timmer(hrs,mins):
     elif(int(hrs)>9):
             pass
     else:
-            if(int(mins)<15):
-                    sleep_time=(15-int(mins))
+            if(int(mins)<16):
+                    sleep_time=(16-int(mins))
                     for i in range(sleep_time):
                         sleep_time-=1
                         print(style.BLUE+f"time left {sleep_time}"+style.RESET)
@@ -838,8 +906,32 @@ def timmer(hrs,mins):
             else:
                     print("Working")
                     pass
+    return whole_data,nifty_data
                     #sleep_time=(((60-int((mins)))+15)*60)
-                    
+def writeJson(data):
+    # print("############################", data['data'])
+    # yesterday_gainer = data['data']['yesterdaygainers']
+    file_name='ma'
+    cwd = os.getcwd()
+    path=cwd.split('\\server')[0]+'\\src\\Data'
+
+    with open(f"{path}\\{file_name}.json", 'w') as f:
+        json.dump({"MA":data}, f)
+
+    return {'status': 'Success'}
+
+def readma():
+    file_name='ma'
+    cwd = os.getcwd()
+    path=cwd.split('\\server')[0]+'\\src\\Data'
+    g = open(f"{path}\\{file_name}.json")
+
+    # with open (f"{path}\\{file_name}.json", 'r') as f:
+    #     data = f.read()
+    data=json.load(g)
+    return data['MA']    
+
+ 
      
 
 
@@ -857,22 +949,20 @@ def main():
     hrs=str(tod).split(' ')[1].split(':')[0]
     mins=str(tod).split(' ')[1].split(':')[1]
     personal_data = {
-                'angel_code': 'P205239',
-                'Api_key': 'heInmbVF',
-                'pswd': '3773',
+                'angel_code': 'P20523',
+                'Api_key': 'VnxtPCe1',
+                'pswd': '',
                 'otpkey': 'YSSC6X4LGTKQMBIRE56FCZZI44'}
-    BUY=None
-    approved=0
-    rejected=0
-    if (day in leave )==False and day.strftime('%A') !="Saturday" and day.strftime('%A') != "Sunday":
-            timmer(hrs,mins)
-            logncred=login(personal_data)
-            readJson()
-            whole_data=read_data(True)
-            nifty_stks=get_nifty_stocks()
-            nifty_data=[]
-            yesterday=fix_yesterday_date(day)
-            for i in nifty_stks:
+    
+    logncred=login(personal_data)
+    readJson()
+    whole_data=read_data(True)
+    nifty_stks=get_nifty_stocks()
+    nifty_data=[]
+    yesterday=fix_yesterday_date(day)
+
+
+    for i in nifty_stks:
                         for j in whole_data.index:
                             # print(j['symbol'],i['symbol'])
                             if f"{i}-EQ"== whole_data['symbol'][j]:
@@ -880,18 +970,36 @@ def main():
                                 nifty_data.append({'symbol':i,'token':whole_data['token'][j]})
                                 # i['token']= whole_data['token'][j]
                                 break
+    op=get_historical_data(yesterday,logncred['obj'],nifty_data,False)
+    writeJson(op)
+    BUY=None
+    approved=0
+    rejected=0
+    if (day in leave )==False and day.strftime('%A') !="Saturday" and day.strftime('%A') != "Sunday":
+            whole_data,nifty_data=timmer()
+            logncred=login(personal_data)
+            ma=readma()
+            #nifty_data=[]
+            # for i in nifty_stks:
+            #             for j in whole_data.index:
+            #                 # print(j['symbol'],i['symbol'])
+            #                 if f"{i}-EQ"== whole_data['symbol'][j]:
+
+            #                     nifty_data.append({'symbol':i,'token':whole_data['token'][j]})
+            #                     # i['token']= whole_data['token'][j]
+            #                     break
 
 
             candledata=get_historical_data(yesterday,logncred['obj'],nifty_data,True)
             #print(candledata)
     
-            ohldata=ltpdata(logncred['obj'],candledata,ohl=True)
+            call_data=ltpdata(logncred['obj'],candledata,ma,ohl=True)
             #print(ohldata)
             # full_ohl=set_full_gap(ohldata)
-            call_data=setohl(ohldata)
+            #call_data=setohl(ohldata,ma)
             #print(call_data)
             #OPEN=HIGH=LOW
-            if(int(hrs)!=9 or int(mins)<=55):
+            if(int(hrs)==9 and int(mins)<=35):
                 #print('entered')
                 # call_datalen=len(call_data)
                 if(len(call_data)>0 ):
@@ -920,9 +1028,9 @@ def main():
                     time.sleep(60)
 
                     while len(call_data)==0:
-                            ohldata=ltpdata(logncred['obj'],candledata,ohl=True)
+                            call_data=ltpdata(logncred['obj'],candledata,ma,ohl=True)
                             #print(ohldata)
-                            call_data=setohl(ohldata)
+                            # call_data=setohl(ohldata,ma)
                             #print(call_data)
                             approved,rejected=Set_Buy_Sell(logncred['obj'],call_data)
                             if(len(approved)>0 and len(call_data)>0):
@@ -955,6 +1063,9 @@ def main():
                  
                  print("another strategy")
                  #if any orders were in 
+            op=get_historical_data(yesterday,logncred['obj'],nifty_data,False)
+            writeJson(op)
+     
                  
 
                                         
@@ -966,9 +1077,10 @@ def main():
 
 
 
-         
+    
     else:
          print('today holiday')
+    
             
 
 
